@@ -4,10 +4,13 @@ use iced::{
     Element,
     widget::{button, column, row, text},
 };
+use notify_rust::Notification;
 
 pub struct Timer {
     pub time_remaining: Duration,
     pub is_running: bool,
+    pub cycle: PomodoroCycle,
+    pub work_sessions_completed: u32,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -18,11 +21,28 @@ pub enum TimerMessage {
     Reset,
 }
 
+#[derive(Debug, Clone, Copy)]
+enum PomodoroCycle {
+    Work,
+    ShortBreak,
+    LongBreak,
+}
+
+fn get_cycle_duration(cycle: PomodoroCycle) -> Duration {
+    match cycle {
+        PomodoroCycle::Work => Duration::from_secs(25 * 60),
+        PomodoroCycle::ShortBreak => Duration::from_secs(5 * 60),
+        PomodoroCycle::LongBreak => Duration::from_secs(15 * 60),
+    }
+}
+
 impl Default for Timer {
     fn default() -> Self {
         Timer {
-            time_remaining: Duration::from_secs(60 * 25),
+            time_remaining: Duration::from_secs(get_cycle_duration(PomodoroCycle::Work).as_secs()),
             is_running: false,
+            cycle: PomodoroCycle::Work,
+            work_sessions_completed: 0,
         }
     }
 }
@@ -41,6 +61,17 @@ impl Timer {
             TimerMessage::TickSecond => {
                 if self.is_running && !self.time_remaining.is_zero() {
                     self.time_remaining = self.time_remaining - Duration::from_secs(1);
+                }
+
+                if self.is_running && self.time_remaining.is_zero() {
+                    self.is_running = false;
+                    self.switch_cycle();
+
+                    Notification::new()
+                        .summary("Pomodoro Timer")
+                        .body(self.get_cycle_message())
+                        .show()
+                        .ok();
                 }
             }
             TimerMessage::Start => {
@@ -89,5 +120,40 @@ impl Timer {
             .padding(20);
 
         timer_view.into()
+    }
+
+    fn switch_cycle(&mut self) {
+        match self.cycle {
+            PomodoroCycle::Work => {
+                self.work_sessions_completed += 1;
+
+                if self.work_sessions_completed % 4 == 0 {
+                    self.cycle = PomodoroCycle::LongBreak;
+                } else {
+                    self.cycle = PomodoroCycle::ShortBreak;
+                }
+            }
+            PomodoroCycle::ShortBreak | PomodoroCycle::LongBreak => {
+                self.cycle = PomodoroCycle::Work;
+            }
+        }
+
+        self.time_remaining = get_cycle_duration(self.cycle);
+    }
+
+    fn get_cycle_name(&self) -> &'static str {
+        match self.cycle {
+            PomodoroCycle::Work => "Work",
+            PomodoroCycle::ShortBreak => "Short Break",
+            PomodoroCycle::LongBreak => "Long Break",
+        }
+    }
+
+    fn get_cycle_message(&self) -> &'static str {
+        match self.cycle {
+            PomodoroCycle::Work => "Time to focus!",
+            PomodoroCycle::ShortBreak => "Take a short break!",
+            PomodoroCycle::LongBreak => "Take a long break!",
+        }
     }
 }
