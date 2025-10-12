@@ -57,10 +57,20 @@ impl Timer {
     }
 
     pub fn view(&self) -> Element<'_, TimerMessage> {
+        let start_pause_button = match self.is_running {
+            true => button(text("Pause").center())
+                .on_press(TimerMessage::Pause)
+                .width(100),
+            false => button(text("Start").center())
+                .on_press(TimerMessage::Start)
+                .width(100),
+        };
+
         let button_column = row![
-            button("Start").on_press(TimerMessage::Start),
-            button("Reset").on_press(TimerMessage::Reset),
-            button("Pause").on_press(TimerMessage::Pause),
+            start_pause_button,
+            button(text("Reset").center())
+                .on_press(TimerMessage::Reset)
+                .width(100)
         ]
         .spacing(10);
 
