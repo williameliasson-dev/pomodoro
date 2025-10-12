@@ -22,7 +22,7 @@ pub enum TimerMessage {
 }
 
 #[derive(Debug, Clone, Copy)]
-enum PomodoroCycle {
+pub enum PomodoroCycle {
     Work,
     ShortBreak,
     LongBreak,
@@ -83,6 +83,8 @@ impl Timer {
             TimerMessage::Reset => {
                 self.time_remaining = Duration::from_secs(60 * 25);
                 self.is_running = false;
+                self.cycle = PomodoroCycle::Work;
+                self.work_sessions_completed = 0;
             }
         }
     }
@@ -114,7 +116,12 @@ impl Timer {
             .width(iced::Length::Fill)
             .center();
 
-        let timer_view = column![time_display, button_column]
+        let cycle_display = text(self.get_cycle_message())
+            .size(25)
+            .width(iced::Length::Fill)
+            .center();
+
+        let timer_view = column![time_display, button_column, cycle_display]
             .width(iced::Length::Fill)
             .align_x(iced::alignment::Horizontal::Center)
             .padding(20);
@@ -139,14 +146,6 @@ impl Timer {
         }
 
         self.time_remaining = get_cycle_duration(self.cycle);
-    }
-
-    fn get_cycle_name(&self) -> &'static str {
-        match self.cycle {
-            PomodoroCycle::Work => "Work",
-            PomodoroCycle::ShortBreak => "Short Break",
-            PomodoroCycle::LongBreak => "Long Break",
-        }
     }
 
     fn get_cycle_message(&self) -> &'static str {
