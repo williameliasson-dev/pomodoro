@@ -81,7 +81,7 @@ impl Timer {
                 self.is_running = false;
             }
             TimerMessage::Reset => {
-                self.time_remaining = Duration::from_secs(60 * 25);
+                self.time_remaining = get_cycle_duration(PomodoroCycle::Work);
                 self.is_running = false;
                 self.cycle = PomodoroCycle::Work;
                 self.work_sessions_completed = 0;
